@@ -13,7 +13,7 @@ def est_constant(log_p: Callable[[ConfigSpace, StateSpace], float],
                  gen_x_sampler: Callable[[ConfigSpace], Iterator[StateSpace]],
                  w: List[ConfigSpace],
                  batch_size: int = 1000,
-                 max_sd: float = .1,
+                 max_loss: float = .1,
                  log: bool = False,
                  iid: bool = False) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray):
     """
@@ -21,7 +21,7 @@ def est_constant(log_p: Callable[[ConfigSpace, StateSpace], float],
     :param gen_x_sampler:
     :param w:
     :param batch_size:
-    :param max_sd:
+    :param max_loss:
     :param log:
     :param iid:
     :return:
@@ -34,7 +34,7 @@ def est_constant(log_p: Callable[[ConfigSpace, StateSpace], float],
     z_var = np.diag(np.repeat(np.inf, len(w)))
     chi = np.ones((len(w), len(w)))
 
-    while np.sqrt(np.mean(np.diag(z_var))) > max_sd:
+    while np.sqrt(np.mean(np.diag(z_var))) > max_loss:
         log_q = [np.append(log_q_, log_q_ext, 0)
                  for log_q_, log_q_ext
                  in zip(log_q, resample(log_p_samplers, np.int32(np.ceil(len(w) * batch_size * reweight(chi)))))]
@@ -108,7 +108,7 @@ def eval_emus_err(log_q: List[np.ndarray],
 
     f_inv = grp_invert(f_est)
 
-    z_jac = [(z_est[i] if not log else 1) * f_inv for i in range(n_windows)]
+    z_jac = [z_est[i] * f_inv / (1 if not log else z_est) for i in range(n_windows)]
     chi_sq = [z_jac[i].T @ f_cov[i] @ z_jac[i] for i in range(n_windows)]
     chi = np.array([np.sqrt(np.diag(chi_sq[i])) for i in range(n_windows)])
     z_var = sum([chi_sq[i] / n_samples[i] for i in range(n_windows)])

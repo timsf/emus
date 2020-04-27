@@ -101,28 +101,29 @@ def param_sampler(x: np.ndarray, a: float) -> Iterator[multinomial.Param]:
 
 class EmusTest(unittest.TestCase):
 
-    def setUp(self, n_obs=100, n_vars=10, n_windows=10, scale_windows=1, seed=666):
+    def setUp(self, n_obs=100, n_vars=10, n_windows=20, scale_windows=1, seed=1):
 
         self.data, self.param, self.hyper = generate_fixture(n_obs, n_vars, seed)
         self.windows = -np.log(1 - scale_windows * np.linspace(0, 1, n_windows + 2)[1:-1])
 
-    def test_emus(self, alpha=.05, max_sd=.01):
+    def test_emus(self, alpha=.05, max_loss=.01):
 
         log_p = lambda w, the: eval_logjoint(*self.data, *the, w)
         sampler = lambda w: param_sampler(*self.data, w)
 
-        z_est, z_sd, uv_mu, mv_mu, log_q = est_constant(log_p, sampler, self.windows, 100, max_sd, True)
+        z_est, z_var, uv_mu, mv_mu, log_q = est_constant(log_p, sampler, self.windows, 100, max_loss, False, True)
+        z_sd = np.sqrt(np.diag(z_var))
         z = np.exp([eval_logmargin(*self.data, w) for w in self.windows])
         z = z / np.sum(z)
 
         self.assertLess(alpha, kstest((z - z_est) / z_sd, norm(0, 1).cdf)[1])
 
-    def test_emus_log(self, alpha=.05, max_sd=.01):
+    def test_emus_log(self, alpha=.05, max_loss=.1):
 
         log_p = lambda w, the: eval_logjoint(*self.data, *the, w)
         sampler = lambda w: param_sampler(*self.data, w)
 
-        z_est, z_var, chi, mu, log_q = est_constant(log_p, sampler, self.windows, 100, max_sd, True, True)
+        z_est, z_var, chi, mu, log_q = est_constant(log_p, sampler, self.windows, 100, max_loss, True, True)
         z_sd = np.sqrt(np.diag(z_var))
         z = np.exp([eval_logmargin(*self.data, w, *self.hyper[1:]) for w in self.windows])
         z = np.log(z / np.sum(z))
