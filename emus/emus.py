@@ -4,8 +4,8 @@ import numpy as np
 import numpy.typing as npt
 from scipy.special import logsumexp
 
-import umbrella.tools.ledwolf
-import umbrella.tools.linalg
+import emus.tools.ledwolf
+import emus.tools.linalg
 
 
 IntArr = npt.NDArray[np.int_]
